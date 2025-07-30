@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>KryptoEwolucja</title>
+</head>
+<body>
+    <h1>KryptoEwolucja – Gra Web3</h1>
+    <button onclick="move()">Rzuć kością</button>
+    <div id="popup" style="display:none;"></div>
+    <div id="projekty"></div>
+    <script>
+        async function move() {
+            const res = await fetch("/move", { method: "POST" });
+            const data = await res.json();
+            if (data.pole === "Projekt") {
+                const projekty = await (await fetch("/projekty_dostepne")).json();
+                showProjectPopup(projekty.projekty);
+            } else {
+                alert(data.efekt);
+            }
+            loadState();
+        }
+
+        async function wybierz(index) {
+            await fetch("/wybierz_projekt", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ index })
+            });
+            document.getElementById("popup").style.display = "none";
+            loadState();
+        }
+
+        async function loadState() {
+            const res = await fetch("/get_state");
+            const state = await res.json();
+            let out = "<h3>Twoje Projekty Web3:</h3><ul>";
+            for (const g of state.gracze) {
+                if (!g.bot) {
+                    for (const p of g.projekty) {
+                        out += `<li>${p.nazwa} (${p.tur_pozostalo} tury)</li>`;
+                    }
+                }
+            }
+            document.getElementById("projekty").innerHTML = out + "</ul>";
+        }
+
+        function showProjectPopup(projekty) {
+            const popup = document.getElementById("popup");
+            popup.innerHTML = "<h3>Wybierz projekt:</h3>" + projekty.map((p, i) =>
+                `<button onclick="wybierz(${i})">${p.nazwa} (Zwrot: ${p.zwrot}, Tury: ${p.tur_pozostalo})</button>`
+            ).join("<br>");
+            popup.style.display = "block";
+        }
+
+        loadState();
+    </script>
+</body>
+</html>
